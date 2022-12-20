@@ -22,30 +22,29 @@ fn main() {
     let mut frame_count = 0;
     rl.set_target_fps(FPS);
     
-    let mut player = Snake {
-        body: vec![
-            rvec2(0, 0),
-            rvec2(1, 0),
-            rvec2(2, 0),
-        ],
-        direction: Direction::Down,
-        next_direction: Direction::Down,
-    };
-
+    let mut snake = Snake::new(3);
     let mut food = Food::new();
 
-    while !rl.window_should_close() {
-        player.get_inputs(&rl);
+    let mut score = 0;
+    let font_size = 40;
+
+    while !rl.window_should_close() && !snake.game_ended() {
+        snake.get_inputs(&rl);
 
         if frame_count % GAME_SPEED == 0 {
-            player.update(&mut food);
+            snake.update(&mut food, &mut score);
         }
 
         let mut d = rl.begin_drawing(&thread);
         d.clear_background(Color::LIGHTGRAY);
 
-        player.draw(&mut d);
+        snake.draw(&mut d);
         food.draw(&mut d);
+
+        let score_text = &format!("Score: {}", score);
+        let text_length = measure_text(score_text, font_size);
+
+        d.draw_text(score_text, SCREEN_SIZE / 2 - text_length / 2, 10, font_size, Color::YELLOW);
 
         d.draw_fps(10, 10);
 
