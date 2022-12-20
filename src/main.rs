@@ -3,6 +3,9 @@ use raylib::prelude::*;
 mod snake;
 use snake::snake::*;
 
+mod astar;
+use astar::astar::*;
+
 const SCREEN_SIZE: i32 = 800;
 
 const CELL_SIZE: f32 = 50.0;
@@ -12,6 +15,8 @@ const GRID_SIZE: i32 = SCREEN_SIZE / CELL_SIZE_I;
 
 const GAME_SPEED: i32 = 10;
 const FPS: u32 = 60;
+
+
 
 fn main() {
     let (mut rl, thread) = raylib::init()
@@ -23,23 +28,37 @@ fn main() {
     rl.set_target_fps(FPS);
     
     let mut snake = Snake::new(3);
+    println!("Head: ({}, {})", snake.body[0].x, snake.body[0].y);
     let mut food = Food::new();
+    let mut astar = AStar::new();
+
+    astar.search(&snake, &food);
+    let mut path_index: usize = 1;
 
     let mut score = 0;
     let font_size = 40;
 
     while !rl.window_should_close() && !snake.game_ended() {
-        snake.get_inputs(&rl);
+        let score_before = score;
 
         if frame_count % GAME_SPEED == 0 {
+            snake.set_next_direction(astar.get_next_move(path_index, &snake));
             snake.update(&mut food, &mut score);
+            path_index += 1;
+        }
+
+        if score_before - score != 0 {
+            astar.search(&snake, &food);
+            path_index = 1;
         }
 
         let mut d = rl.begin_drawing(&thread);
         d.clear_background(Color::LIGHTGRAY);
 
-        snake.draw(&mut d);
+        astar.draw_path(&mut d);
+
         food.draw(&mut d);
+        snake.draw(&mut d);
 
         let score_text = &format!("Score: {}", score);
         let text_length = measure_text(score_text, font_size);

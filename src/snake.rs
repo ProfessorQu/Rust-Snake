@@ -6,7 +6,7 @@ pub mod snake {
 
     use crate::{CELL_SIZE, CELL_SIZE_I, GRID_SIZE};
 
-    #[derive(Clone, Copy, PartialEq)]
+    #[derive(Clone, Copy, PartialEq, Debug)]
     pub enum Direction {
         Up,
         Down,
@@ -26,7 +26,7 @@ pub mod snake {
     }
 
     pub struct Snake {
-        body: Vec<Vector2>,
+        pub body: Vec<Vector2>,
         direction: Direction,
         next_direction: Direction,
         game_over: bool,
@@ -78,6 +78,12 @@ pub mod snake {
             }
             else if handle.is_key_down(KEY_RIGHT) && self.direction.opposite() != Direction::Right {
                 self.next_direction = Direction::Right;
+            }
+        }
+
+        pub fn set_next_direction(&mut self, dir: Direction) {
+            if self.direction.opposite() != dir {
+                self.next_direction = dir;
             }
         }
 
