@@ -8,3 +8,8 @@ If there is no direct path, the snake will move in a random direction with a fre
 
 [Geeks for Geeks](https://www.geeksforgeeks.org/a-search-algorithm/)
 [Sebastian Lague](https://www.youtube.com/watch?v=-L-WgKMFuhE&ab_channel=SebastianLague)
+
+## Prim's algorithm to find Hamiltonian cycles
+
+[Geeks for Geeks Hamiltonian cycle](https://www.geeksforgeeks.org/hamiltonian-cycle-backtracking-6/)
+[Tutorialspoint Hamiltonian cycle[(https://www.tutorialspoint.com/Hamiltonian-Cycle)
