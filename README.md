@@ -13,3 +13,4 @@ If there is no direct path, the snake will move in a random direction with a fre
 
 [Geeks for Geeks Hamiltonian cycle](https://www.geeksforgeeks.org/hamiltonian-cycle-backtracking-6/)<br>
 [Tutorialspoint Hamiltonian cycle](https://www.tutorialspoint.com/Hamiltonian-Cycle)
+[Other algorithms](https://github.com/gsurma/slitherin)
