@@ -13,7 +13,7 @@ const CELL_SIZE_I: i32 = CELL_SIZE as i32;
 
 const GRID_SIZE: i32 = SCREEN_SIZE / CELL_SIZE_I;
 
-const GAME_SPEED: i32 = 10;
+const GAME_SPEED: i32 = 1;
 const FPS: u32 = 60;
 
 
@@ -28,7 +28,6 @@ fn main() {
     rl.set_target_fps(FPS);
     
     let mut snake = Snake::new(3);
-    println!("Head: ({}, {})", snake.body[0].x, snake.body[0].y);
     let mut food = Food::new();
     let mut astar = AStar::new();
 
