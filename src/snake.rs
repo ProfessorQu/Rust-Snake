@@ -1,10 +1,38 @@
 pub mod snake {
+    use std::ops::Sub;
+
     use raylib::prelude::*;
     use raylib::prelude::consts::KeyboardKey::*;
 
     use rand::{*, seq::SliceRandom};
 
     use crate::{CELL_SIZE, CELL_SIZE_I, GRID_SIZE};
+
+    #[derive(Clone, Copy, PartialEq)]
+    pub struct Pos {
+        pub x: usize,
+        pub y: usize
+    }
+
+    impl Pos {
+        pub fn new(x: usize, y: usize) -> Self {
+            Self {
+                x,
+                y
+            }
+        }
+    }
+
+    impl Sub for Pos {
+        type Output = Self;
+
+        fn sub(self, other: Self) -> Self::Output {
+            Self {
+                x: self.x - other.x,
+                y: self.y - other.y,
+            }
+        }
+    }
 
     #[derive(Clone, Copy, PartialEq, Debug)]
     pub enum Direction {
@@ -26,7 +54,7 @@ pub mod snake {
     }
 
     pub struct Snake {
-        pub body: Vec<Vector2>,
+        pub body: Vec<Pos>,
         direction: Direction,
         next_direction: Direction,
         game_over: bool,
@@ -36,8 +64,8 @@ pub mod snake {
     impl Snake {
         pub fn new(len: i32) -> Self {
             let mut body = Vec::new();
-            for i in (0..len).rev() {
-                body.push(rvec2(i, 0));
+            for i in (0..len as usize).rev() {
+                body.push(Pos::new(i, 0));
             }
 
             Self {
@@ -53,16 +81,16 @@ pub mod snake {
             self.game_over || self.game_win
         }
 
-        fn out_of_bounds(&self, x: f32, y: f32) -> bool {
-            x < 0.0 || x >= GRID_SIZE as f32 || y < 0.0 || y >= GRID_SIZE as f32
+        fn out_of_bounds(&self, x: usize, y: usize) -> bool {
+            x >= GRID_SIZE || y >= GRID_SIZE
         }
 
-        fn transform(&self, vec: &Vector2, direction: &Direction) -> Vector2 {
+        fn transform(&self, vec: &Pos, direction: &Direction) -> Pos {
             match direction {
-                Direction::Up => rvec2(vec.x, vec.y - 1.0),
-                Direction::Down => rvec2(vec.x, vec.y + 1.0),
-                Direction::Left => rvec2(vec.x - 1.0, vec.y),
-                Direction::Right => rvec2(vec.x + 1.0, vec.y)
+                Direction::Up => Pos::new(vec.x, vec.y - 1),
+                Direction::Down => Pos::new(vec.x, vec.y + 1),
+                Direction::Left => Pos::new(vec.x - 1, vec.y),
+                Direction::Right => Pos::new(vec.x + 1, vec.y)
             }
         }
 
@@ -142,25 +170,25 @@ pub mod snake {
     }
 
     pub struct Food {
-        pub pos: Vector2
+        pub pos: Pos
     }
 
     impl Food {
         pub fn new() -> Self {
             Self {
-                pos: rvec2(
-                    get_random_value::<i32>(0, GRID_SIZE - 1),
-                    get_random_value::<i32>(0, GRID_SIZE - 1),
+                pos: Pos::new(
+                    get_random_value::<i32>(0, GRID_SIZE as i32 - 1) as usize,
+                    get_random_value::<i32>(0, GRID_SIZE as i32- 1) as usize,
                 )
             }
         }
 
-        fn get_free_spaces(&self, snake: &Snake) -> Vec<Vector2> {
+        fn get_free_spaces(&self, snake: &Snake) -> Vec<Pos> {
             let mut spaces = Vec::new();
 
             for x in 0..GRID_SIZE {
                 for y in 0..GRID_SIZE {
-                    let vector = rvec2(x, y);
+                    let vector = Pos::new(x, y);
                     if !snake.body.contains(&vector) {
                         spaces.push(vector);
                     }
@@ -171,9 +199,9 @@ pub mod snake {
         }
 
         pub fn respawn(&mut self, snake: &Snake) -> bool {
-            self.pos = rvec2(
-                get_random_value::<i32>(0, GRID_SIZE - 1),
-                get_random_value::<i32>(0, GRID_SIZE - 1),
+            self.pos = Pos::new(
+                get_random_value::<i32>(0, GRID_SIZE as i32 - 1) as usize,
+                get_random_value::<i32>(0, GRID_SIZE as i32 - 1) as usize,
             );
 
             let mut rng = thread_rng();

@@ -8,15 +8,13 @@ use astar::astar::*;
 
 const SCREEN_SIZE: i32 = 800;
 
-const CELL_SIZE: f32 = 50.0;
+const CELL_SIZE: usize = 50;
 const CELL_SIZE_I: i32 = CELL_SIZE as i32;
 
-const GRID_SIZE: i32 = SCREEN_SIZE / CELL_SIZE_I;
+const GRID_SIZE: usize = SCREEN_SIZE as usize / CELL_SIZE;
 
-const GAME_SPEED: i32 = 1;
+const GAME_SPEED: usize = 1;
 const FPS: u32 = 60;
-
-
 
 fn main() {
     let (mut rl, thread) = raylib::init()
@@ -32,7 +30,7 @@ fn main() {
     let mut astar = AStar::new();
 
     astar.search(&snake, &food);
-    let mut path_index: usize = 1;
+    let mut path_index: usize = 0;
 
     let mut score = 0;
     let font_size = 40;
@@ -48,7 +46,7 @@ fn main() {
 
         if score_before - score != 0 {
             astar.search(&snake, &food);
-            path_index = 1;
+            path_index = 0;
         }
 
         let mut d = rl.begin_drawing(&thread);

@@ -2,22 +2,22 @@ pub mod astar {
     use raylib::prelude::*;
 
     use crate::snake::snake::*;
-    use crate::{GRID_SIZE, CELL_SIZE_I};
+    use crate::{GRID_SIZE, CELL_SIZE, CELL_SIZE_I};
 
-    #[derive(Clone, Copy, Debug)]
+    #[derive(Clone, Copy)]
     pub struct Node {
-        parent: Vector2,
+        parent: Pos,
         f: i32,
         g: i32,
         h: i32,
     }
 
     pub struct AStar {
-        path: Vec<Vector2>,
+        path: Vec<Pos>,
         end: Option<Node>,
-        end_pos: Vector2,
+        end_pos: Pos,
         nodes: Vec<Vec<Node>>,
-        open: Vec<Vector2>,
+        open: Vec<Pos>,
         closed: Vec<Vec<bool>>,
     }
 
@@ -26,7 +26,7 @@ pub mod astar {
             Self {
                 path: Vec::new(),
                 end: None,
-                end_pos: rvec2(GRID_SIZE, GRID_SIZE),
+                end_pos: Pos::new(GRID_SIZE, GRID_SIZE),
                 nodes: Vec::new(),
                 open: Vec::new(),
                 closed: Vec::new()
@@ -35,8 +35,8 @@ pub mod astar {
 
         pub fn draw_path(&self, draw: &mut RaylibDrawHandle) {
             for piece in self.path.iter() {
-                let x = piece.x as i32 * CELL_SIZE_I;
-                let y = piece.y  as i32* CELL_SIZE_I;
+                let x = (piece.x * CELL_SIZE) as i32;
+                let y = (piece.y * CELL_SIZE) as i32;
                 draw.draw_rectangle(x, y, CELL_SIZE_I, CELL_SIZE_I, Color::GOLD);
             }
         }
@@ -45,12 +45,18 @@ pub mod astar {
             let head = snake.body[0];
             let next = self.path[path_index];
 
-            match next - head {
-                Vector2 { x, y } if x == 1.0  && y == 0.0 => Direction::Right,
-                Vector2 { x, y } if x == -1.0 && y == 0.0 => Direction::Left,
-                Vector2 { x, y } if y == 1.0  && x == 0.0 => Direction::Down,
-                Vector2 { x, y } if y == -1.0 && x == 0.0 => Direction::Up,
-                _ => Direction::Left
+            let x: i32 = next.x as i32 - head.x as i32;
+            let y: i32 = next.y as i32 - head.y as i32;
+
+            match x {
+                1 => Direction::Right,
+                -1 => Direction::Left,
+                0 => match y {
+                    1 => Direction::Down,
+                    -1 => Direction::Up,
+                    _ => Direction::Right
+                },
+                _ => Direction::Right
             }
         }
 
@@ -59,18 +65,18 @@ pub mod astar {
         }
     
         fn is_unblocked(&self, snake: &Snake, x: usize, y: usize) -> bool {
-            !snake.body[1..].contains(&rvec2(x as i32, y as i32))
+            !snake.body[1..].contains(&Pos::new(x, y))
         }
     
         fn is_destination(&self, food: &Food, x: usize, y: usize) -> bool {
-            food.pos.x == x as f32 && food.pos.y == y as f32
+            food.pos.x == x && food.pos.y == y
         }
     
         fn calculate_h_value(&self, food: &Food, x: usize, y: usize) -> i32 {
             (x as i32 - food.pos.x as i32).abs() + (y as i32 - food.pos.y as i32).abs()
         }
     
-        fn test_pos(&mut self, snake: &Snake, food: &Food, x: usize, y: usize, check_x: bool) -> bool {
+        fn test_neighbors(&mut self, snake: &Snake, food: &Food, x: usize, y: usize, check_x: bool) -> bool {
             let offsets = vec![-1 as i32, 1];
 
             // ====================
@@ -85,13 +91,13 @@ pub mod astar {
 
                 if self.is_valid(new_x, new_y) {
                     if self.is_destination(&food, new_x, new_y) {
-                        self.nodes[new_x][new_y].parent.x = x as f32;
-                        self.nodes[new_x][new_y].parent.y = y as f32;
+                        self.nodes[new_x][new_y].parent.x = x;
+                        self.nodes[new_x][new_y].parent.y = y;
     
                         self.end = Some(self.nodes[new_x][new_y]);
-                        self.end_pos = rvec2(new_x as i32, new_y as i32);
+                        self.end_pos = Pos::new(new_x, new_y);
 
-                        return true;
+                        return true
                     }
                     else if !self.closed[new_x][new_y] && self.is_unblocked(&snake, new_x, new_y) {
                         let new_g = self.nodes[x][y].g + 1;
@@ -99,29 +105,38 @@ pub mod astar {
                         let new_f = new_g + new_h;
 
                         if self.nodes[new_x][new_y].f == i32::MAX || self.nodes[new_x][new_y].f > new_f {
-                            self.open.push(rvec2(new_x as i32, new_y as i32));
+                            self.open.push(Pos::new(new_x, new_y));
     
                             self.nodes[new_x][new_y].g = new_g;
                             self.nodes[new_x][new_y].h = new_h;
                             self.nodes[new_x][new_y].f = new_f;
-                            self.nodes[new_x][new_y].parent.x = x as f32;
-                            self.nodes[new_x][new_y].parent.y = y as f32;
+                            self.nodes[new_x][new_y].parent.x = x;
+                            self.nodes[new_x][new_y].parent.y = y;
                         }
                     }
                 }
             }
 
-            return false;
+            return false
         }
 
-        fn get_path(&mut self, node: &Node) {
-            if node.parent.x == GRID_SIZE as f32 || node.parent.y == GRID_SIZE as f32 {
-                return;
+        fn test_pos(&mut self, snake: &Snake, food: &Food, x: usize, y: usize) -> bool {
+            let rand_bool = rand::random::<f32>() < 0.5;
+            self.test_neighbors(&snake, &food, x, y, rand_bool) || self.test_neighbors(&snake, &food, x, y, !rand_bool)
+        }
+
+        fn get_path(&mut self, node: &Node) -> bool {
+            if node.parent.x == GRID_SIZE || node.parent.y == GRID_SIZE {
+                return false;
             }
 
             let parent = self.nodes[node.parent.x as usize][node.parent.y as usize];
-            self.get_path(&parent);
-            self.path.push(node.parent);
+            if self.get_path(&parent)
+            {
+                self.path.push(node.parent);
+            }
+
+            true
         }
 
         pub fn search(&mut self, snake: &Snake, food: &Food) {
@@ -141,7 +156,7 @@ pub mod astar {
                 self.nodes.push(Vec::new());
                 for _ in 0..GRID_SIZE {
                     self.nodes[x as usize].push(Node {
-                        parent: rvec2(GRID_SIZE, GRID_SIZE),
+                        parent: Pos::new(GRID_SIZE, GRID_SIZE),
                         f: i32::MAX,
                         g: i32::MAX,
                         h: i32::MAX
@@ -158,8 +173,8 @@ pub mod astar {
             self.nodes[head_x][head_y].f = 0;
             self.nodes[head_x][head_y].g = 0;
             self.nodes[head_x][head_y].h = 0;
-            self.nodes[head_x][head_y].parent.x = GRID_SIZE as f32;
-            self.nodes[head_x][head_y].parent.y = GRID_SIZE as f32;
+            self.nodes[head_x][head_y].parent.x = GRID_SIZE;
+            self.nodes[head_x][head_y].parent.y = GRID_SIZE;
 
             let mut found = false;
     
@@ -171,10 +186,7 @@ pub mod astar {
     
                 self.closed[x][y] = true;
     
-                found = self.test_pos(&snake, &food, x, y, true);
-                if !found {
-                    found = self.test_pos(&snake, &food, x, y, false);
-                }
+                found = self.test_pos(&snake, &food, x, y);
             }
 
             match self.end {
