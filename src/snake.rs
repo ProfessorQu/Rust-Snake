@@ -6,9 +6,9 @@ pub mod snake {
 
     use rand::{*, seq::SliceRandom};
 
-    use crate::{CELL_SIZE, CELL_SIZE_I, GRID_SIZE};
+    use crate::{CELL_SIZE, CELL_SIZE_I, GRID_WIDTH, GRID_HEIGHT};
 
-    #[derive(Clone, Copy, PartialEq)]
+    #[derive(Clone, Copy, PartialEq, Debug)]
     pub struct Pos {
         pub x: usize,
         pub y: usize
@@ -82,15 +82,80 @@ pub mod snake {
         }
 
         fn out_of_bounds(&self, x: usize, y: usize) -> bool {
-            x >= GRID_SIZE || y >= GRID_SIZE
+            x >= GRID_WIDTH || y >= GRID_HEIGHT
         }
 
         fn transform(&self, vec: &Pos, direction: &Direction) -> Pos {
+            let x = vec.x as i32;
+            let y = vec.y as i32;
             match direction {
-                Direction::Up => Pos::new(vec.x, vec.y - 1),
-                Direction::Down => Pos::new(vec.x, vec.y + 1),
-                Direction::Left => Pos::new(vec.x - 1, vec.y),
-                Direction::Right => Pos::new(vec.x + 1, vec.y)
+                Direction::Up => Pos::new(x as usize, (y - 1) as usize),
+                Direction::Down => Pos::new(x as usize, (y + 1) as usize),
+                Direction::Left => Pos::new((x - 1) as usize, y as usize),
+                Direction::Right => Pos::new((x + 1) as usize, y as usize)
+            }
+        }
+
+        fn test_neighbors(&mut self, check_x: bool) -> Pos {
+            let head = self.body[0];
+            let offsets = vec![-1 as i32, 1];
+
+            // ====================
+            // Test offsets
+            // ====================
+            for offset in offsets.iter() {
+                let x_mult = check_x as i32;
+                let y_mult = 1 - x_mult;
+
+                let new_x = (head.x as i32 + (*offset * x_mult)) as usize;
+                let new_y = (head.y as i32 + (*offset * y_mult)) as usize;
+
+                if !self.out_of_bounds(new_x, new_y) {
+                    let cur_pos = Pos::new(new_x, new_y);
+
+                    if !self.body[1..].contains(&cur_pos)
+                    {
+                        return cur_pos
+                    }
+                }
+            }
+
+            return Pos::new(GRID_WIDTH, GRID_HEIGHT)
+        }
+
+        fn test_pos(&mut self) -> Option<Pos> {
+            let rand_bool = rand::random::<f32>() < 0.5;
+            match self.test_neighbors(rand_bool) {
+                Pos {x: GRID_WIDTH, y: GRID_HEIGHT } =>
+                match self.test_neighbors(!rand_bool) {
+                    Pos {x: GRID_WIDTH, y: GRID_HEIGHT } => None,
+                    x => Some(x)
+                },
+                x => Some(x)
+            } 
+        }
+
+        pub fn get_dir_of_free_space(&mut self) -> Direction {
+            let head = self.body[0];
+            
+            match self.test_pos() {
+                Some(next) => {
+                    let x: i32 = next.x as i32 - head.x as i32;
+                    let y: i32 = next.y as i32 - head.y as i32;
+    
+                    match x {
+                        1 => Direction::Right,
+                        -1 => Direction::Left,
+                        0 => match y {
+                            1 => Direction::Down,
+                            -1 => Direction::Up,
+                            _ => Direction::Right
+                        },
+                        _ => Direction::Right
+                    
+                    }
+                }
+                None => Direction::Right
             }
         }
 
@@ -177,8 +242,8 @@ pub mod snake {
         pub fn new() -> Self {
             Self {
                 pos: Pos::new(
-                    get_random_value::<i32>(0, GRID_SIZE as i32 - 1) as usize,
-                    get_random_value::<i32>(0, GRID_SIZE as i32- 1) as usize,
+                    get_random_value::<i32>(0, GRID_WIDTH as i32 - 1) as usize,
+                    get_random_value::<i32>(0, GRID_HEIGHT as i32- 1) as usize,
                 )
             }
         }
@@ -186,8 +251,8 @@ pub mod snake {
         fn get_free_spaces(&self, snake: &Snake) -> Vec<Pos> {
             let mut spaces = Vec::new();
 
-            for x in 0..GRID_SIZE {
-                for y in 0..GRID_SIZE {
+            for x in 0..GRID_WIDTH {
+                for y in 0..GRID_HEIGHT {
                     let vector = Pos::new(x, y);
                     if !snake.body.contains(&vector) {
                         spaces.push(vector);
@@ -200,8 +265,8 @@ pub mod snake {
 
         pub fn respawn(&mut self, snake: &Snake) -> bool {
             self.pos = Pos::new(
-                get_random_value::<i32>(0, GRID_SIZE as i32 - 1) as usize,
-                get_random_value::<i32>(0, GRID_SIZE as i32 - 1) as usize,
+                get_random_value::<i32>(0, GRID_WIDTH as i32 - 1) as usize,
+                get_random_value::<i32>(0, GRID_HEIGHT as i32 - 1) as usize,
             );
 
             let mut rng = thread_rng();

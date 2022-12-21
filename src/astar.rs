@@ -2,7 +2,7 @@ pub mod astar {
     use raylib::prelude::*;
 
     use crate::snake::snake::*;
-    use crate::{GRID_SIZE, CELL_SIZE, CELL_SIZE_I};
+    use crate::{GRID_WIDTH, GRID_HEIGHT, CELL_SIZE, CELL_SIZE_I};
 
     #[derive(Clone, Copy)]
     pub struct Node {
@@ -26,7 +26,7 @@ pub mod astar {
             Self {
                 path: Vec::new(),
                 end: None,
-                end_pos: Pos::new(GRID_SIZE, GRID_SIZE),
+                end_pos: Pos::new(GRID_WIDTH, GRID_HEIGHT),
                 nodes: Vec::new(),
                 open: Vec::new(),
                 closed: Vec::new()
@@ -34,10 +34,12 @@ pub mod astar {
         }
 
         pub fn draw_path(&self, draw: &mut RaylibDrawHandle) {
-            for piece in self.path.iter() {
-                let x = (piece.x * CELL_SIZE) as i32;
-                let y = (piece.y * CELL_SIZE) as i32;
-                draw.draw_rectangle(x, y, CELL_SIZE_I, CELL_SIZE_I, Color::GOLD);
+            if self.path_found() {
+                for piece in self.path.iter() {
+                    let x = (piece.x * CELL_SIZE) as i32;
+                    let y = (piece.y * CELL_SIZE) as i32;
+                    draw.draw_rectangle(x, y, CELL_SIZE_I, CELL_SIZE_I, Color::GOLD);
+                }
             }
         }
 
@@ -60,8 +62,15 @@ pub mod astar {
             }
         }
 
+        pub fn path_found(&self) -> bool {
+            match self.end {
+                Some(_) => true,
+                None => false
+            }
+        }
+
         fn is_valid(&self, x: usize, y: usize) -> bool {
-            x < GRID_SIZE as usize && y < GRID_SIZE as usize
+            x < GRID_WIDTH && y < GRID_HEIGHT
         }
     
         fn is_unblocked(&self, snake: &Snake, x: usize, y: usize) -> bool {
@@ -121,12 +130,11 @@ pub mod astar {
         }
 
         fn test_pos(&mut self, snake: &Snake, food: &Food, x: usize, y: usize) -> bool {
-            let rand_bool = rand::random::<f32>() < 0.5;
-            self.test_neighbors(&snake, &food, x, y, rand_bool) || self.test_neighbors(&snake, &food, x, y, !rand_bool)
+            self.test_neighbors(&snake, &food, x, y, true) || self.test_neighbors(&snake, &food, x, y, false)
         }
 
         fn get_path(&mut self, node: &Node) -> bool {
-            if node.parent.x == GRID_SIZE || node.parent.y == GRID_SIZE {
+            if node.parent.x == GRID_WIDTH || node.parent.y == GRID_HEIGHT {
                 return false;
             }
 
@@ -143,20 +151,21 @@ pub mod astar {
             self.path = Vec::new();
 
             let head = snake.body[0];
-    
-            self.closed = vec![vec![false; GRID_SIZE as usize]; GRID_SIZE as usize];
+
+            self.closed = vec![vec![false; GRID_HEIGHT]; GRID_WIDTH];
             self.nodes = Vec::new();
+
+            self.end = None;
     
-            if head == food.pos {
-                self.end = None;
+            if head.x == GRID_WIDTH || head.y == GRID_HEIGHT || head == food.pos {
                 return;
             }
             
-            for x in 0..GRID_SIZE {
+            for x in 0..GRID_WIDTH {
                 self.nodes.push(Vec::new());
-                for _ in 0..GRID_SIZE {
-                    self.nodes[x as usize].push(Node {
-                        parent: Pos::new(GRID_SIZE, GRID_SIZE),
+                for _ in 0..GRID_HEIGHT {
+                    self.nodes[x].push(Node {
+                        parent: Pos::new(GRID_WIDTH, GRID_HEIGHT),
                         f: i32::MAX,
                         g: i32::MAX,
                         h: i32::MAX
@@ -167,14 +176,11 @@ pub mod astar {
             self.open = Vec::new();
             self.open.push(head);
 
-            let head_x = head.x as usize;
-            let head_y = head.y as usize;
-
-            self.nodes[head_x][head_y].f = 0;
-            self.nodes[head_x][head_y].g = 0;
-            self.nodes[head_x][head_y].h = 0;
-            self.nodes[head_x][head_y].parent.x = GRID_SIZE;
-            self.nodes[head_x][head_y].parent.y = GRID_SIZE;
+            self.nodes[head.x][head.y].f = 0;
+            self.nodes[head.x][head.y].g = 0;
+            self.nodes[head.x][head.y].h = 0;
+            self.nodes[head.x][head.y].parent.x = GRID_WIDTH;
+            self.nodes[head.x][head.y].parent.y = GRID_HEIGHT;
 
             let mut found = false;
     
