@@ -12,5 +12,5 @@ If there is no direct path, the snake will move in a random direction with a fre
 ## Prim's algorithm to find Hamiltonian cycles
 
 [Geeks for Geeks Hamiltonian cycle](https://www.geeksforgeeks.org/hamiltonian-cycle-backtracking-6/)<br>
-[Tutorialspoint Hamiltonian cycle](https://www.tutorialspoint.com/Hamiltonian-Cycle)
-[Other algorithms](https://github.com/gsurma/slitherin)
+[Tutorialspoint Hamiltonian cycle](https://www.tutorialspoint.com/Hamiltonian-Cycle)<br>
+[Other algorithms](https://github.com/gsurma/slitherin)<br>
