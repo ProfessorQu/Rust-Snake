@@ -10,18 +10,20 @@ mod ham_cycle;
 use ham_cycle::ham_cycle::*;
 
 
-const CELL_SIZE: usize = 15;
+const CELL_SIZE: usize = 10;
 const CELL_SIZE_I: i32 = CELL_SIZE as i32;
 
-const GRID_WIDTH: usize = 10;
-const GRID_HEIGHT: usize = 10;
-const GRID_SIZE: usize = GRID_WIDTH * GRID_HEIGHT;
+const GRID_WIDTH: usize = 100;
+const GRID_HEIGHT: usize = 80;
 
 const SCREEN_WIDTH: i32 = GRID_WIDTH as i32 * CELL_SIZE_I;
 const SCREEN_HEIGHT: i32 = GRID_HEIGHT as i32 * CELL_SIZE_I;
 
-const GAME_SPEED: usize = 10;
-const FPS: u32 = 60;
+const GAME_SPEED: usize = 1;
+const SEARCH_EVERY: usize = 10;
+const FPS: u32 = 240;
+
+const FONT_SIZE: i32 = 40;
 
 fn main() {
     let (mut rl, thread) = raylib::init()
@@ -30,43 +32,20 @@ fn main() {
         .build();
 
     let mut frame_count = 0;
-    rl.set_target_fps(FPS);
+    // rl.set_target_fps(FPS);
     
     let mut snake = Snake::new(3);
     let mut food = Food::new();
 
-    // let mut ham_cycle = HamiltonianCycle::new();
-
     let mut astar = AStar::new();
 
-    // let path = ham_cycle.generate();
-
     astar.search(&snake, &food);
-    let mut path_index: usize = 0;
 
     let mut score = 0;
-    let font_size = 40;
 
-    while !rl.window_should_close() && !snake.game_ended() {
-        let score_before = score;
-
-        snake.get_inputs(&rl);
-
-        if frame_count % GAME_SPEED == 0 {
-            if !astar.path_found() {
-                let dir = snake.get_dir_of_free_space();
-                snake.set_next_direction(dir);
-            }
-            else {
-                snake.set_next_direction(astar.get_next_move(path_index, &snake));
-            }
-            snake.update(&mut food, &mut score);
-            path_index += 1;
-        }
-
-        if (score_before - score != 0) || !astar.path_found() {
-            astar.search(&snake, &food);
-            path_index = 0;
+    while !rl.window_should_close() {
+        if !snake.game_ended() {
+            astar.update(&mut snake, &mut food, &frame_count, &mut score);
         }
 
         let mut d = rl.begin_drawing(&thread);
@@ -78,13 +57,18 @@ fn main() {
         snake.draw(&mut d);
 
         let score_text = &format!("Score: {}", score);
-        let text_length = measure_text(score_text, font_size);
+        let text_length = measure_text(score_text, FONT_SIZE);
 
-        d.draw_text(score_text, SCREEN_WIDTH / 2 - text_length / 2, 10, font_size, Color::YELLOW);
+        d.draw_text(score_text, SCREEN_WIDTH / 2 - text_length / 2, 10, FONT_SIZE, Color::YELLOW);
 
         d.draw_fps(10, 10);
 
+        if snake.game_over {
+            let text = "GAME OVER";
+            let text_length = measure_text(text, FONT_SIZE);
+            d.draw_text(text, SCREEN_WIDTH / 2 - text_length / 2, SCREEN_WIDTH / 2 - text_length / 2, FONT_SIZE, Color::RED);
+        }
+
         frame_count += 1;
-        frame_count %= 60;
     }
 }
