@@ -13,7 +13,7 @@ pub mod astar {
     }
 
     pub struct AStar {
-        path: Vec<Pos>,
+        pub path: Vec<Pos>,
         end: Option<Node>,
         end_pos: Pos,
         nodes: Vec<Vec<Node>>,
@@ -77,12 +77,12 @@ pub mod astar {
             !snake.body[1..].contains(&Pos::new(x, y))
         }
     
-        fn is_destination(&self, food: &Food, x: usize, y: usize) -> bool {
-            food.pos.x == x && food.pos.y == y
+        fn is_destination(&self, end: &Pos, x: usize, y: usize) -> bool {
+            end.x == x && end.y == y
         }
     
-        fn calculate_h_value(&self, food: &Food, x: usize, y: usize) -> i32 {
-            (x as i32 - food.pos.x as i32).abs() + (y as i32 - food.pos.y as i32).abs()
+        fn calculate_h_value(&self, end: &Pos, x: usize, y: usize) -> i32 {
+            (x as i32 - end.x as i32).abs() + (y as i32 - end.y as i32).abs()
         }
     
         fn test_neighbors(&mut self, snake: &Snake, food: &Food, x: usize, y: usize, check_x: bool) -> bool {
@@ -99,7 +99,7 @@ pub mod astar {
                 let new_y = (y as i32 + (*offset * y_mult)) as usize;
 
                 if self.is_valid(new_x, new_y) {
-                    if self.is_destination(&food, new_x, new_y) {
+                    if self.is_destination(&food.pos, new_x, new_y) {
                         self.nodes[new_x][new_y].parent.x = x;
                         self.nodes[new_x][new_y].parent.y = y;
     
@@ -110,7 +110,7 @@ pub mod astar {
                     }
                     else if !self.closed[new_x][new_y] && self.is_unblocked(&snake, new_x, new_y) {
                         let new_g = self.nodes[x][y].g + 1;
-                        let new_h = self.calculate_h_value(&food, new_x, new_y);
+                        let new_h = self.calculate_h_value(&food.pos, new_x, new_y);
                         let new_f = new_g + new_h;
 
                         if self.nodes[new_x][new_y].f == i32::MAX || self.nodes[new_x][new_y].f > new_f {

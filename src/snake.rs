@@ -21,6 +21,23 @@ pub mod snake {
                 y
             }
         }
+
+        pub fn neighbor(&self, other: Pos) -> bool {
+            let x: i32 = other.x as i32 - self.x as i32;
+            let y: i32 = other.y as i32 - self.y as i32;
+
+            match x {
+                0 => match y {
+                    0 => false,
+                    -1 => true,
+                    1 => true,
+                    _ => false
+                }
+                -1 => y == 0,
+                1 => y == 0,
+                _ => false
+            }
+        }
     }
 
     impl Sub for Pos {

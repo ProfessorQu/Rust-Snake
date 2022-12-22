@@ -6,18 +6,22 @@ use snake::snake::*;
 mod astar;
 use astar::astar::*;
 
+mod ham_cycle;
+use ham_cycle::ham_cycle::*;
+
 
 const CELL_SIZE: usize = 15;
 const CELL_SIZE_I: i32 = CELL_SIZE as i32;
 
-const GRID_WIDTH: usize = 50;
-const GRID_HEIGHT: usize = 50;
+const GRID_WIDTH: usize = 10;
+const GRID_HEIGHT: usize = 10;
+const GRID_SIZE: usize = GRID_WIDTH * GRID_HEIGHT;
 
 const SCREEN_WIDTH: i32 = GRID_WIDTH as i32 * CELL_SIZE_I;
 const SCREEN_HEIGHT: i32 = GRID_HEIGHT as i32 * CELL_SIZE_I;
 
-const GAME_SPEED: usize = 1;
-const FPS: u32 = 120;
+const GAME_SPEED: usize = 10;
+const FPS: u32 = 60;
 
 fn main() {
     let (mut rl, thread) = raylib::init()
@@ -30,7 +34,12 @@ fn main() {
     
     let mut snake = Snake::new(3);
     let mut food = Food::new();
+
+    // let mut ham_cycle = HamiltonianCycle::new();
+
     let mut astar = AStar::new();
+
+    // let path = ham_cycle.generate();
 
     astar.search(&snake, &food);
     let mut path_index: usize = 0;
@@ -40,6 +49,8 @@ fn main() {
 
     while !rl.window_should_close() && !snake.game_ended() {
         let score_before = score;
+
+        snake.get_inputs(&rl);
 
         if frame_count % GAME_SPEED == 0 {
             if !astar.path_found() {
