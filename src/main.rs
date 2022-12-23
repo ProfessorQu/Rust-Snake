@@ -1,5 +1,3 @@
-use std::io::{stdin, stdout, Write};
-
 use raylib::prelude::*;
 
 mod snake;
@@ -11,23 +9,30 @@ use astar::astar::*;
 mod ham_cycle;
 use ham_cycle::ham_cycle::*;
 
-const CELL_SIZE: usize = 8;
+mod gui;
+use gui::gui::*;
+
+const CELL_SIZE: usize = 18;
 const CELL_SIZE_I: i32 = CELL_SIZE as i32;
 
-const GRID_WIDTH: usize = 100;
-const GRID_HEIGHT: usize = 100;
+const GRID_WIDTH: usize = 50;
+const GRID_HEIGHT: usize = 50;
 
 const SCREEN_WIDTH: i32 = GRID_WIDTH as i32 * CELL_SIZE_I;
 const SCREEN_HEIGHT: i32 = GRID_HEIGHT as i32 * CELL_SIZE_I;
 
-const GAME_SPEED: usize = 1;
+const GAME_SPEED: usize = 10;
 const SEARCH_EVERY: usize = 10;
 
 const START_LEN: usize = 3;
 
-const FPS: u32 = u32::MAX;
+const FPS: u32 = 60;
 
 const FONT_SIZE: i32 = 40;
+
+const BUTTON_WIDTH: f32 = 400.0;
+const BUTTON_HEIGHT: f32 = 160.0;
+const BUTTON_FONT_SIZE: i32 = 60;
 
 fn draw(d: &mut RaylibDrawHandle, snake: &Snake, food: &Food, frame_count: &usize, score: &i32) {
     d.clear_background(Color::LIGHTGRAY);
@@ -39,7 +44,7 @@ fn draw(d: &mut RaylibDrawHandle, snake: &Snake, food: &Food, frame_count: &usiz
     let score_text_length = measure_text(score_text, FONT_SIZE);
 
     let frame_text = &format!("Frames: {}", frame_count);
-    let frame_text_length = measure_text(score_text, 20);
+    let frame_text_length = measure_text(frame_text, 20);
 
     d.draw_text(score_text, SCREEN_WIDTH / 2 - score_text_length / 2, 10, FONT_SIZE, Color::YELLOW);
     d.draw_text(frame_text, SCREEN_WIDTH / 2 - frame_text_length / 2, SCREEN_HEIGHT - 30, 20, Color::BROWN);
@@ -55,41 +60,6 @@ fn draw(d: &mut RaylibDrawHandle, snake: &Snake, food: &Food, frame_count: &usiz
 
 fn main() {
     // ==================================
-    // Select algorithm
-    // ==================================
-    print!("Please select algorithm (self/a*/ham): ");
-    stdout().flush().expect("Failed to flush output");
-
-    let mut mode_string = String::new();
-    stdin().read_line(&mut mode_string).expect("Failed to read mode");
-    let mode = mode_string.trim();
-
-    if mode != "self" && mode != "a*" && mode != "ham" {
-        println!("Unknown algorithm");
-        return;
-    }
-
-    let self_chosen = mode == "self";
-    let astar_chosen = mode == "a*" && !self_chosen;
-    let mut astar_random = false;
-
-    if astar_chosen {
-        print!("Please select subtype (dumb/slow): ");
-        stdout().flush().expect("Failed to flush output");
-    
-        let mut random_string = String::new();
-        stdin().read_line(&mut random_string).expect("Failed to read mode");
-        let random = random_string.trim();
-    
-        if random != "dumb" && random != "slow" {
-            println!("Unknown subtype");
-            return;
-        }
-
-        astar_random = random == "dumb";
-    }
-
-    // ==================================
     // Initialize variables
     // ==================================
     let (mut rl, thread) = raylib::init()
@@ -97,8 +67,24 @@ fn main() {
         .title("Snake")
         .build();
 
+    let mut astar_random = false;
+
+    let mode = mode_menu(&mut rl, &thread);
+
+    if mode == "" {
+        return;
+    }
+    else if mode == "self" {
+        rl.set_target_fps(FPS);
+    }
+    else if mode == "a*" {
+        astar_random = match astar_random_menu(&mut rl, &thread) {
+            Some(x) => x,
+            None => return,
+        }
+    }
+
     let mut frame_count = 0;
-    rl.set_target_fps(FPS);
     
     let mut snake = Snake::new();
     let mut food = Food::new();
@@ -108,14 +94,12 @@ fn main() {
     // ==================================
     // Play self
     // ==================================
-    if self_chosen {
+    if mode == "self" {
         while !rl.window_should_close() {
             snake.get_inputs(&rl);
 
             if !snake.game_ended() && frame_count % GAME_SPEED == 0 {
                 snake.update(&mut food, &mut score);
-                
-                frame_count += 1;
             }
     
             if rl.is_key_pressed(consts::KeyboardKey::KEY_R) {
@@ -125,6 +109,8 @@ fn main() {
                 frame_count = 0;
                 score = 0;
             }
+            
+            frame_count += 1;
     
             let mut d = rl.begin_drawing(&thread);
             draw(&mut d, &snake, &food, &frame_count, &score);
@@ -133,7 +119,7 @@ fn main() {
     // ==================================
     // A* algorithm
     // ==================================
-    else if astar_chosen {
+    else if mode == "a*" {
         let mut astar = AStar::new(astar_random);
         astar.search(&snake, &food);
 
@@ -156,20 +142,20 @@ fn main() {
             }
     
             let mut d = rl.begin_drawing(&thread);
-            astar.draw_path(&mut d);
+            astar.draw_path(&mut d, &snake);
             draw(&mut d, &snake, &food, &frame_count, &score);
         }
     }
     // ==================================
     // Hamiltonian cycle
     // ==================================
-    else {
+    else if mode == "ham" {
         let mut ham = HamiltonianCycle::new();
         ham.generate(&snake);
 
         while !rl.window_should_close() {
             if !snake.game_ended() {
-                ham.update(&mut snake, &mut food, &frame_count, &mut score);
+                ham.update(&mut snake, &mut food, &mut score);
                 
                 frame_count += 1;
             }
@@ -185,10 +171,7 @@ fn main() {
             }
     
             let mut d = rl.begin_drawing(&thread);
-            ham.draw_path(&mut d);
             draw(&mut d, &snake, &food, &frame_count, &score);
         }
     }
-
-    
 }

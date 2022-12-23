@@ -51,23 +51,37 @@ pub mod snake {
             vec
         }
 
-        pub fn adjacent(&self, dir: &Direction) -> Option<Self> {
+        pub fn transform(&self, dir: &Direction) -> Self {
             match dir {
-                Direction::Right => if in_bounds_i32(self.x as i32 + 1, self.y as i32) {
-                    Some(Self { x: self.x + 1, y: self.y})
-                } else { None },
+                Direction::Right => Self { x: self.x + 1, y: self.y},
+                Direction::Left => Self { x: self.x - 1, y: self.y },
+                Direction::Up => Self { x: self.x, y: self.y - 1 },
+                Direction::Down => Self { x: self.x, y: self.y + 1 },
+            }
+        }
 
-                Direction::Left => if in_bounds_i32(self.x as i32 - 1, self.y as i32) {
-                    Some(Self { x: self.x - 1, y: self.y })
-                } else { None },
-                
-                Direction::Up => if in_bounds_i32(self.x as i32, self.y as i32 - 1) {
-                    Some(Self { x: self.x, y: self.y - 1 })
-                } else { None },
+        pub fn adjacent(&self, dir: &Direction) -> Option<Self> {
+            let x = self.x as i32;
+            let y = self.y as i32;
 
-                Direction::Down => if in_bounds_i32(self.x as i32, self.y as i32 + 1) {
-                    Some(Self { x: self.x, y: self.y + 1 })
-                } else { None },
+            match dir {
+                Direction::Up => match in_bounds_i32(x, y - 1) {
+                    true => Some(Pos::new(self.x, (y - 1) as usize)),
+                    false => None,
+                },
+                Direction::Down => match in_bounds_i32(x, y + 1) {
+                    true => Some(Pos::new(self.x, (y + 1) as usize)),
+                    false => None,
+                },
+
+                Direction::Left => match in_bounds_i32(x - 1, y) {
+                    true => Some(Pos::new((x - 1) as usize, self.y)),
+                    false => None,
+                },
+                Direction::Right => match in_bounds_i32(x + 1, y) {
+                    true => Some(Pos::new((x + 1) as usize, self.y)),
+                    false => None,
+                },
             }
         }
 
@@ -172,31 +186,6 @@ pub mod snake {
             self.game_over || self.game_win
         }
 
-        fn transform(&self, vec: &Pos, direction: &Direction) -> Option<Pos> {
-            let x = vec.x as i32;
-            let y = vec.y as i32;
-
-            match direction {
-                Direction::Up => match in_bounds_i32(x, y - 1) {
-                    true => Some(Pos::new(vec.x, (y - 1) as usize)),
-                    false => None,
-                },
-                Direction::Down => match in_bounds_i32(x, y + 1) {
-                    true => Some(Pos::new(vec.x, (y + 1) as usize)),
-                    false => None,
-                },
-
-                Direction::Left => match in_bounds_i32(x - 1, y) {
-                    true => Some(Pos::new((x - 1) as usize, vec.y)),
-                    false => None,
-                },
-                Direction::Right => match in_bounds_i32(x + 1, y) {
-                    true => Some(Pos::new((x + 1) as usize, vec.y)),
-                    false => None,
-                },
-            }
-        }
-
         fn get_free_spaces(&self, positions: Vec<Pos>) -> Vec<Pos> {
             let mut free = Vec::new();
 
@@ -279,11 +268,10 @@ pub mod snake {
         }
 
         pub fn would_collide(&self) -> bool {
-            match self.head().adjacent(&self.direction){
-                Some(next) => self.exclude_head().contains(&next),
-                None => true
+            match self.head().adjacent(&self.direction) {
+                Some(pos) => self.exclude_head().contains(&pos),
+                None => true,
             }
-            
         }
 
         pub fn get_inputs(&mut self, handle: &RaylibHandle) {
@@ -322,7 +310,7 @@ pub mod snake {
         fn collide(&mut self) {
             let head = self.head();
             if !self.game_over {
-                let pos = match self.transform(&head, &self.next_direction) {
+                let pos = match head.adjacent(&self.next_direction) {
                     Some(x) => x,
                     None => { self.game_over = true; return; }
                 };
@@ -344,7 +332,7 @@ pub mod snake {
             self.direction = self.next_direction.clone();
             let head = self.body.first().clone().expect("Failed to get the snake head");
 
-            let next = self.transform(&head, &self.direction).expect("Failed to transform head to the next direction");
+            let next = head.adjacent(&self.direction).expect("Failed to transform head to the next direction");
             self.body.insert(0, next);
             self.body.remove(self.body.len() - 1);
 

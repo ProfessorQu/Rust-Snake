@@ -2,10 +2,11 @@ pub mod astar {
     use raylib::prelude::*;
 
     use crate::snake::snake::*;
-    use crate::{GRID_WIDTH, GRID_HEIGHT, CELL_SIZE, CELL_SIZE_I, GAME_SPEED, SEARCH_EVERY};
+    use crate::{GRID_WIDTH, GRID_HEIGHT, CELL_SIZE, CELL_SIZE_I, SEARCH_EVERY};
 
     #[derive(Clone, Copy)]
     pub struct Node {
+        pos: Pos,
         parent: Pos,
         f: i32,
         g: i32,
@@ -13,14 +14,14 @@ pub mod astar {
     }
 
     pub struct AStar {
-        pub path: Vec<Pos>,
+        pub path: Vec<Direction>,
         path_index: usize,
         end: Option<Node>,
         end_pos: Pos,
         nodes: Vec<Vec<Node>>,
         open: Vec<Pos>,
         closed: Vec<Vec<bool>>,
-        random_dir: bool,
+        random_dir: bool
     }
 
     impl AStar {
@@ -33,7 +34,7 @@ pub mod astar {
                 nodes: Vec::new(),
                 open: Vec::new(),
                 closed: Vec::new(),
-                random_dir,
+                random_dir
             }
         }
 
@@ -50,25 +51,23 @@ pub mod astar {
         pub fn update(&mut self, snake: &mut Snake, food: &mut Food, frame_count: &usize, score: &mut i32) {
             let score_before = *score;
             let path_found = self.path_found();
-    
-            if frame_count % GAME_SPEED == 0 {
-                if !path_found && snake.would_collide() {
-                    if self.random_dir {
-                        let dir = snake.get_random_free_dir();
-                        snake.set_next_direction(dir);
-                    }
-                    else {
-                        let dir = snake.get_dir_of_free_space();
-                        snake.set_next_direction(dir);
-                    }
-                }
-                else if path_found {
-                    snake.set_next_direction(self.get_next_move(&snake));
-                    self.path_index += 1;
-                }
-    
-                snake.update(food, score);
+
+            if path_found {
+                snake.set_next_direction(self.get_next_move());
+                self.path_index += 1;
             }
+            else if !path_found && snake.would_collide() {
+                if self.random_dir {
+                    let dir = snake.get_random_free_dir();
+                    snake.set_next_direction(dir);
+                }
+                else {
+                    let dir = snake.get_dir_of_free_space();
+                    snake.set_next_direction(dir);
+                }
+            }
+
+            snake.update(food, score);
     
             if score_before - *score != 0 || (!path_found && frame_count % SEARCH_EVERY == 0) {
                 self.search(&snake, &food);
@@ -76,33 +75,20 @@ pub mod astar {
             }
         }
 
-        pub fn draw_path(&self, draw: &mut RaylibDrawHandle) {
+        pub fn draw_path(&self, draw: &mut RaylibDrawHandle, snake: &Snake) {
             if self.path_found() {
-                for piece in self.path.iter() {
-                    let x = (piece.x * CELL_SIZE) as i32;
-                    let y = (piece.y * CELL_SIZE) as i32;
+                let mut cur = snake.head();
+                for dir in self.path[self.path_index..].iter() {
+                    cur = cur.transform(dir);
+                    let x = (cur.x * CELL_SIZE) as i32;
+                    let y = (cur.y * CELL_SIZE) as i32;
                     draw.draw_rectangle(x, y, CELL_SIZE_I, CELL_SIZE_I, Color::GRAY);
                 }
             }
         }
 
-        pub fn get_next_move(&self, snake: &Snake) -> Direction {
-            let head = snake.body[0];
-            let next = self.path[self.path_index];
-
-            let x: i32 = next.x as i32 - head.x as i32;
-            let y: i32 = next.y as i32 - head.y as i32;
-
-            match x {
-                1 => Direction::Right,
-                -1 => Direction::Left,
-                0 => match y {
-                    1 => Direction::Down,
-                    -1 => Direction::Up,
-                    _ => Direction::Right
-                },
-                _ => Direction::Right
-            }
+        pub fn get_next_move(&self) -> Direction {
+            self.path[self.path_index]
         }
 
         pub fn path_found(&self) -> bool {
@@ -172,18 +158,14 @@ pub mod astar {
             self.test_neighbors(end, obstacles, x, y, true) || self.test_neighbors(end, obstacles, x, y, false)
         }
 
-        fn get_path(&mut self, node: &Node) -> bool {
+        fn get_path(&mut self, node: &Node) {
             if node.parent.x == GRID_WIDTH || node.parent.y == GRID_HEIGHT {
-                return false;
+                return;
             }
 
             let parent = self.nodes[node.parent.x as usize][node.parent.y as usize];
-            if self.get_path(&parent)
-            {
-                self.path.push(node.parent);
-            }
-
-            true
+            self.get_path(&parent);
+            self.path.push(parent.pos.get_dir_to(&node.pos).unwrap());
         }
 
         pub fn shortest_path(&mut self, start: &Pos, end: &Pos, obstacles: &Vec<Pos>) {
@@ -200,8 +182,9 @@ pub mod astar {
             
             for x in 0..GRID_WIDTH {
                 self.nodes.push(Vec::new());
-                for _ in 0..GRID_HEIGHT {
+                for y in 0..GRID_HEIGHT {
                     self.nodes[x].push(Node {
+                        pos: Pos::new(x, y),
                         parent: Pos::new(GRID_WIDTH, GRID_HEIGHT),
                         f: i32::MAX,
                         g: i32::MAX,
@@ -233,7 +216,7 @@ pub mod astar {
             }
 
             match self.end {
-                Some(node) => { self.get_path(&node); self.path.push(self.end_pos) },
+                Some(node) => { self.get_path(&node); },
                 None => {}
             };
         }
