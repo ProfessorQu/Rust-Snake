@@ -20,10 +20,11 @@ pub mod astar {
         nodes: Vec<Vec<Node>>,
         open: Vec<Pos>,
         closed: Vec<Vec<bool>>,
+        random_dir: bool,
     }
 
     impl AStar {
-        pub fn new() -> Self {
+        pub fn new(random_dir: bool) -> Self {
             Self {
                 path: Vec::new(),
                 path_index: 0,
@@ -31,8 +32,19 @@ pub mod astar {
                 end_pos: Pos::new(GRID_WIDTH, GRID_HEIGHT),
                 nodes: Vec::new(),
                 open: Vec::new(),
-                closed: Vec::new()
+                closed: Vec::new(),
+                random_dir,
             }
+        }
+
+        pub fn reset(&mut self) {
+            self.path = Vec::new();
+            self.path_index = 0;
+            self.end = None;
+            self.end_pos = Pos::new(GRID_WIDTH, GRID_HEIGHT);
+            self.nodes = Vec::new();
+            self.open = Vec::new();
+            self.closed = Vec::new();
         }
 
         pub fn update(&mut self, snake: &mut Snake, food: &mut Food, frame_count: &usize, score: &mut i32) {
@@ -41,8 +53,14 @@ pub mod astar {
     
             if frame_count % GAME_SPEED == 0 {
                 if !path_found && snake.would_collide() {
-                    let dir = snake.get_random_free_dir();
-                    snake.set_next_direction(dir);
+                    if self.random_dir {
+                        let dir = snake.get_random_free_dir();
+                        snake.set_next_direction(dir);
+                    }
+                    else {
+                        let dir = snake.get_dir_of_free_space();
+                        snake.set_next_direction(dir);
+                    }
                 }
                 else if path_found {
                     snake.set_next_direction(self.get_next_move(&snake));
@@ -94,10 +112,6 @@ pub mod astar {
             }
         }
 
-        fn is_valid(&self, x: usize, y: usize) -> bool {
-            x < GRID_WIDTH && y < GRID_HEIGHT
-        }
-    
         fn is_unblocked(&self, obstacles: &Vec<Pos>, x: usize, y: usize) -> bool {
             !obstacles.contains(&Pos::new(x, y))
         }
@@ -123,7 +137,7 @@ pub mod astar {
                 let new_x = (x as i32 + (*offset * x_mult)) as usize;
                 let new_y = (y as i32 + (*offset * y_mult)) as usize;
 
-                if self.is_valid(new_x, new_y) {
+                if in_bounds(new_x, new_y) {
                     if self.is_destination(end, new_x, new_y) {
                         self.nodes[new_x][new_y].parent.x = x;
                         self.nodes[new_x][new_y].parent.y = y;
@@ -138,7 +152,7 @@ pub mod astar {
                         let new_h = self.calculate_h_value(end, new_x, new_y);
                         let new_f = new_g + new_h;
 
-                        if self.nodes[new_x][new_y].f == i32::MAX || self.nodes[new_x][new_y].f > new_f {
+                        if self.nodes[new_x][new_y].f == i32::MAX || self.nodes[new_x][new_y].f < new_f {
                             self.open.push(Pos::new(new_x, new_y));
     
                             self.nodes[new_x][new_y].g = new_g;
@@ -172,7 +186,7 @@ pub mod astar {
             true
         }
 
-        pub fn shortest_path(&mut self, start: &Pos, end: &Pos, obstacles: Vec<Pos>) {
+        pub fn shortest_path(&mut self, start: &Pos, end: &Pos, obstacles: &Vec<Pos>) {
             self.path = Vec::new();
 
             self.closed = vec![vec![false; GRID_HEIGHT]; GRID_WIDTH];
@@ -181,7 +195,7 @@ pub mod astar {
             self.end = None;
     
             if start.x == GRID_WIDTH || start.y == GRID_HEIGHT || start == end {
-                return;
+                return
             }
             
             for x in 0..GRID_WIDTH {
@@ -225,7 +239,7 @@ pub mod astar {
         }
 
         pub fn search(&mut self, snake: &Snake, food: &Food) {
-            self.shortest_path(&snake.head(), &food.pos, snake.exclude_head())
+            self.shortest_path(&snake.head(), &food.pos, &snake.exclude_head())
         }
     }
     

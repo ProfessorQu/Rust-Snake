@@ -6,7 +6,7 @@ pub mod snake {
 
     use rand::{*, seq::SliceRandom};
 
-    use crate::{CELL_SIZE, CELL_SIZE_I, GRID_WIDTH, GRID_HEIGHT};
+    use crate::{CELL_SIZE, CELL_SIZE_I, GRID_WIDTH, GRID_HEIGHT, START_LEN};
 
     pub fn in_bounds(x: usize, y: usize) -> bool {
         x < GRID_WIDTH && y < GRID_HEIGHT
@@ -51,7 +51,7 @@ pub mod snake {
             vec
         }
 
-        pub fn neighbor_in_dir(&self, dir: Direction) -> Option<Self> {
+        pub fn adjacent(&self, dir: &Direction) -> Option<Self> {
             match dir {
                 Direction::Right => if in_bounds_i32(self.x as i32 + 1, self.y as i32) {
                     Some(Self { x: self.x + 1, y: self.y})
@@ -87,23 +87,6 @@ pub mod snake {
                 _ => None
             }
         }
-
-        pub fn neighbor(&self, other: Pos) -> bool {
-            let x: i32 = other.x as i32 - self.x as i32;
-            let y: i32 = other.y as i32 - self.y as i32;
-
-            match x {
-                0 => match y {
-                    0 => false,
-                    -1 => true,
-                    1 => true,
-                    _ => false
-                }
-                -1 => y == 0,
-                1 => y == 0,
-                _ => false
-            }
-        }
     }
 
     impl Sub for Pos {
@@ -126,7 +109,7 @@ pub mod snake {
     }
 
     impl Direction {
-        fn opposite(&self) -> Self {
+        pub fn opposite(&self) -> Self {
             match &self {
                 Direction::Up => Direction::Down,
                 Direction::Down => Direction::Up,
@@ -145,10 +128,9 @@ pub mod snake {
     }
 
     impl Snake {
-        pub fn new(len: i32) -> Self {
+        pub fn new() -> Self {
             let mut body = Vec::new();
-            for i in (0..len as usize).rev() {
-                
+            for i in (0..START_LEN).rev() {
                 body.push(Pos::new(i % GRID_WIDTH, i / GRID_WIDTH));
             }
 
@@ -159,6 +141,19 @@ pub mod snake {
                 game_over: false,
                 game_win: false,
             }
+        }
+
+        pub fn reset(&mut self) {
+            let mut body = Vec::new();
+            for i in (0..START_LEN).rev() {
+                body.push(Pos::new(i % GRID_WIDTH, i / GRID_WIDTH));
+            }
+
+            self.body = body;
+            self.direction = Direction::Right;
+            self.next_direction = Direction::Right;
+            self.game_over = false;
+            self.game_win = false;
         }
 
         pub fn len(&self) -> usize {
@@ -173,62 +168,33 @@ pub mod snake {
             self.body[1..].to_vec()
         }
 
-        pub fn tail(&self) -> Pos {
-            *self.body.last().unwrap()
-        }
-
         pub fn game_ended(&self) -> bool {
             self.game_over || self.game_win
         }
 
-        fn transform(&self, vec: &Pos, direction: &Direction) -> Pos {
+        fn transform(&self, vec: &Pos, direction: &Direction) -> Option<Pos> {
             let x = vec.x as i32;
             let y = vec.y as i32;
+
             match direction {
-                Direction::Up => Pos::new(x as usize, (y - 1) as usize),
-                Direction::Down => Pos::new(x as usize, (y + 1) as usize),
-                Direction::Left => Pos::new((x - 1) as usize, y as usize),
-                Direction::Right => Pos::new((x + 1) as usize, y as usize)
-            }
-        }
-
-        fn test_neighbors(&mut self, check_x: bool) -> Pos {
-            let head = self.head();
-            let offsets = vec![-1 as i32, 1];
-
-            // ====================
-            // Test offsets
-            // ====================
-            for offset in offsets.iter() {
-                let x_mult = check_x as i32;
-                let y_mult = 1 - x_mult;
-
-                let new_x = (head.x as i32 + (*offset * x_mult)) as usize;
-                let new_y = (head.y as i32 + (*offset * y_mult)) as usize;
-
-                if in_bounds(new_x, new_y) {
-                    let cur_pos = Pos::new(new_x, new_y);
-
-                    if !self.exclude_head().contains(&cur_pos)
-                    {
-                        return cur_pos
-                    }
-                }
-            }
-
-            return Pos::new(GRID_WIDTH, GRID_HEIGHT)
-        }
-
-        fn test_pos(&mut self) -> Option<Pos> {
-            let rand_bool = rand::random::<f32>() < 0.5;
-            match self.test_neighbors(rand_bool) {
-                Pos {x: GRID_WIDTH, y: GRID_HEIGHT } =>
-                match self.test_neighbors(!rand_bool) {
-                    Pos {x: GRID_WIDTH, y: GRID_HEIGHT } => None,
-                    x => Some(x)
+                Direction::Up => match in_bounds_i32(x, y - 1) {
+                    true => Some(Pos::new(vec.x, (y - 1) as usize)),
+                    false => None,
                 },
-                x => Some(x)
-            } 
+                Direction::Down => match in_bounds_i32(x, y + 1) {
+                    true => Some(Pos::new(vec.x, (y + 1) as usize)),
+                    false => None,
+                },
+
+                Direction::Left => match in_bounds_i32(x - 1, y) {
+                    true => Some(Pos::new((x - 1) as usize, vec.y)),
+                    false => None,
+                },
+                Direction::Right => match in_bounds_i32(x + 1, y) {
+                    true => Some(Pos::new((x + 1) as usize, vec.y)),
+                    false => None,
+                },
+            }
         }
 
         fn get_free_spaces(&self, positions: Vec<Pos>) -> Vec<Pos> {
@@ -313,7 +279,7 @@ pub mod snake {
         }
 
         pub fn would_collide(&self) -> bool {
-            match self.head().neighbor_in_dir(self.direction){
+            match self.head().adjacent(&self.direction){
                 Some(next) => self.exclude_head().contains(&next),
                 None => true
             }
@@ -355,14 +321,15 @@ pub mod snake {
 
         fn collide(&mut self) {
             let head = self.head();
-            match self.game_over {
-                true => { },
-                false => {
-                    let pos = self.transform(&head, &self.next_direction);
-                    match self.exclude_head().contains(&pos) {
+            if !self.game_over {
+                let pos = match self.transform(&head, &self.next_direction) {
+                    Some(x) => x,
+                    None => { self.game_over = true; return; }
+                };
+
+                match self.exclude_head().contains(&pos) {
                     true => self.game_over = true,
                     false => self.game_over = !in_bounds(head.x, head.y)
-                }
                 }
             }
         }
@@ -377,7 +344,8 @@ pub mod snake {
             self.direction = self.next_direction.clone();
             let head = self.body.first().clone().expect("Failed to get the snake head");
 
-            self.body.insert(0, self.transform(&head, &self.direction));
+            let next = self.transform(&head, &self.direction).expect("Failed to transform head to the next direction");
+            self.body.insert(0, next);
             self.body.remove(self.body.len() - 1);
 
             *score = match self.eat_food(food) {
