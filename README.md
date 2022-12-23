@@ -17,3 +17,5 @@ If there is no direct path, the snake will move in a random direction with a fre
 [Gamedev Stack Exchange](https://gamedev.stackexchange.com/questions/133460/how-to-find-a-safe-path-for-an-ai-snake)
 [Chuyangliu](https://github.com/chuyangliu/snake/blob/master/snake/solver/hamilton.py)
 [Other algorithms](https://github.com/gsurma/slitherin)<br>
+[Non-trivial Hamiltonian path](https://www.youtube.com/watch?v=u4PDNUO78rA&ab_channel=YulianYarema)
+[Minimum spanning tree](https://www.geeksforgeeks.org/properties-of-minimum-spanning-tree-mst/)
