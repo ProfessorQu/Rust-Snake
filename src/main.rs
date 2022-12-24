@@ -30,9 +30,9 @@ const FPS: u32 = 60;
 
 const FONT_SIZE: i32 = 40;
 
-const BUTTON_WIDTH: f32 = 400.0;
-const BUTTON_HEIGHT: f32 = 160.0;
-const BUTTON_FONT_SIZE: i32 = 60;
+const BUTTON_WIDTH: f32 = SCREEN_WIDTH as f32 / 2.5;
+const BUTTON_HEIGHT: f32 = SCREEN_HEIGHT as f32 / 6.0;
+const BUTTON_FONT_SIZE: i32 = SCREEN_HEIGHT / 15;
 
 fn draw(d: &mut RaylibDrawHandle, snake: &Snake, food: &Food, frame_count: &usize, score: &i32) {
     d.clear_background(Color::LIGHTGRAY);

@@ -29,7 +29,7 @@ pub mod ham_cycle {
         }
 
         pub fn reset(&mut self, snake: &Snake) {
-            self.path_index = snake.len();
+            self.path_index = snake.len() - 1;
         }
 
         pub fn generate(&mut self, snake: &Snake) {
