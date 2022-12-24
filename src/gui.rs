@@ -130,7 +130,7 @@ pub mod gui {
     pub fn astar_random_menu(rl: &mut RaylibHandle, thread: &RaylibThread) -> Option<bool> {
         let mut random_button = Button::new(
             SCREEN_WIDTH as f32 / 4.0 - BUTTON_WIDTH / 2.0,
-            SCREEN_HEIGHT as f32 / 1.5 - BUTTON_HEIGHT / 2.0,
+            SCREEN_HEIGHT as f32 / 2.0 - BUTTON_HEIGHT / 2.0,
             BUTTON_WIDTH,
             BUTTON_HEIGHT,
             Color::LIME,
@@ -141,7 +141,7 @@ pub mod gui {
     
         let mut choose_button = Button::new(
             3.0 * SCREEN_WIDTH as f32 / 4.0 - BUTTON_WIDTH / 2.0,
-            SCREEN_HEIGHT as f32 / 1.5 - BUTTON_HEIGHT / 2.0,
+            SCREEN_HEIGHT as f32 / 2.0 - BUTTON_HEIGHT / 2.0,
             BUTTON_WIDTH,
             BUTTON_HEIGHT,
             Color::LIME,
