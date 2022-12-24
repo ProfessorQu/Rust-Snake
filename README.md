@@ -1,6 +1,5 @@
 # Rust-Snake
-A Rust implementation of snake using Raylib.
-Has a few algorithms to play snake.
+A Rust implementation of snake using Raylib. Has a few algorithms to play snake.<br>
 <img src="images/image.png" height=200 /> <img src="https://www.freecodecamp.org/news/content/images/2021/01/rust-mascot.png" height=200 />
 
 ## A*
