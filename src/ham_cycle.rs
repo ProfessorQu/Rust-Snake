@@ -42,8 +42,8 @@ pub mod ham_cycle {
 
             // Loop back and forth while leaving one gap
             let mut reverse = true;
-            for _ in 1..GRID_HEIGHT {
-                for _ in 2..GRID_WIDTH {
+            for _y in 1..GRID_HEIGHT {
+                for _x in 2..GRID_WIDTH {
                     if reverse {
                         self.path.push(Direction::Left);
                     }
@@ -61,7 +61,7 @@ pub mod ham_cycle {
             self.path.push(Direction::Left);
 
             // Go back up
-            for _ in 0..GRID_HEIGHT {
+            for _y in 0..GRID_HEIGHT {
                 self.path.push(Direction::Up);
             }
 
